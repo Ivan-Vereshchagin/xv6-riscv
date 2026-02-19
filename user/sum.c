@@ -26,7 +26,6 @@ int main(int argc, char *argv[]) {
         if (c == '\n') break;
         buf[i++] = c;
     }
-
     buf[i] = '\0';
 
     if (i == 0) {

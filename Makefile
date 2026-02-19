@@ -147,6 +147,7 @@ UPROGS=\
 	$U/_dorphan\
 	$U/_sum\
 	$U/_sumasm\
+	$U/_testadd\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
