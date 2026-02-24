@@ -22,7 +22,7 @@ main(int argc, char *argv[])
   }
   
   if (pid == 0) {
-    pause(500);
+    pause(70);
     exit(1);
   } else {
     printf("Parent ID: %d, child ID: %d\n", getpid(), pid);
@@ -39,7 +39,7 @@ main(int argc, char *argv[])
       
     } else {
       
-      pause(20);
+      pause(5);
 
       if (kill(pid) < 0) {
         write(2, "Kill error: fail\n", 18);
