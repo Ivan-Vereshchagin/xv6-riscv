@@ -107,3 +107,24 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64
+sys_getprocinfo(void)
+{
+  struct procinfo info;
+  struct proc *p = myproc();
+  uint64 addr;
+
+  argaddr(0, &addr);
+
+  if(addr == 0) return -1;
+
+  info.pid = p->pid;
+  info.ppid = (p->parent) ? p->parent->pid : 0;
+  strncpy(info.name, p->name, sizeof(info.name));
+  info.state = p->state;
+
+  if(copyout(p->pagetable, addr, (char *)&info, sizeof(info)) < 0) return -1;
+
+  return 0;
+}
