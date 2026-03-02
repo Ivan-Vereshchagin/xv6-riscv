@@ -49,3 +49,4 @@ void* malloc(uint);
 void free(void*);
 
 int getprocinfo(struct procinfo*);
+int ps_listinfo(struct procinfo*, int);
