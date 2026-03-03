@@ -17,7 +17,8 @@ main(int argc, char *argv[])
   pid = fork();
   
   if (pid < 0) {
-    write(2, "Fork error: fail\n", 18);
+    char err_msg[] = "Fork error: fail\n";
+    write(2, err_msg, sizeof(err_msg) - 1);
     exit(1);
   }
   
@@ -31,7 +32,8 @@ main(int argc, char *argv[])
       wpid = wait(&status);
       
       if (wpid < 0) {
-        write(2, "Wait error: fail\n", 18);
+        char err_msg[] = "Wait error: fail\n";
+        write(2, err_msg, sizeof(err_msg) - 1);
         exit(1);
       }
       
@@ -42,14 +44,16 @@ main(int argc, char *argv[])
       pause(5);
 
       if (kill(pid) < 0) {
-        write(2, "Kill error: fail\n", 18);
+        char err_msg[] = "Kill error: fail\n";
+        write(2, err_msg, sizeof(err_msg) - 1);
         exit(1);
       }
       
       wpid = wait(&status);
       
       if (wpid < 0) {
-        write(2, "Wait error: fail\n", 18);
+        char err_msg[] = "Wait error: fail\n";
+        write(2, err_msg, sizeof(err_msg) - 1);
         exit(1);
       }
       
