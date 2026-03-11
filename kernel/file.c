@@ -12,6 +12,13 @@
 #include "file.h"
 #include "stat.h"
 #include "proc.h"
+#include "mutex.h"
+
+static int
+holding_mutex(struct mutex *m, int pid)
+{
+  return m->lk.locked && m->lk.pid == pid;
+}
 
 struct devsw devsw[NDEV];
 struct {
@@ -51,6 +58,13 @@ filedup(struct file *f)
   if(f->ref < 1)
     panic("filedup");
   f->ref++;
+
+  if (f->type == FD_MUTEX) {
+    acquire(&f->mutex->lock);
+    f->mutex->ref++;
+    release(&f->mutex->lock);
+  }
+
   release(&ftable.lock);
   return f;
 }
@@ -75,6 +89,16 @@ fileclose(struct file *f)
 
   if(ff.type == FD_PIPE){
     pipeclose(ff.pipe, ff.writable);
+  } else if (ff.type == FD_MUTEX) {
+
+    if (holding_mutex(ff.mutex, myproc()->pid)) releasesleep(&ff.mutex->lk);
+
+    acquire(&ff.mutex->lock);
+    int mref = --ff.mutex->ref;
+    release(&ff.mutex->lock);
+
+    if (mref == 0) mutexclose(ff.mutex);
+
   } else if(ff.type == FD_INODE || ff.type == FD_DEVICE){
     begin_op();
     iput(ff.ip);
@@ -89,7 +113,9 @@ filestat(struct file *f, uint64 addr)
 {
   struct proc *p = myproc();
   struct stat st;
-  
+
+  if (f->type == FD_MUTEX) return -1;
+
   if(f->type == FD_INODE || f->type == FD_DEVICE){
     ilock(f->ip);
     stati(f->ip, &st);
@@ -110,6 +136,8 @@ fileread(struct file *f, uint64 addr, int n)
 
   if(f->readable == 0)
     return -1;
+
+  if (f->type == FD_MUTEX) return -1;
 
   if(f->type == FD_PIPE){
     r = piperead(f->pipe, addr, n);
@@ -138,6 +166,8 @@ filewrite(struct file *f, uint64 addr, int n)
 
   if(f->writable == 0)
     return -1;
+
+  if (f->type == FD_MUTEX) return -1;
 
   if(f->type == FD_PIPE){
     ret = pipewrite(f->pipe, addr, n);
