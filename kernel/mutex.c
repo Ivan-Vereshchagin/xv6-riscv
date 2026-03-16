@@ -30,11 +30,18 @@ mutexalloc(void)
   f->readable = 1;
   f->writable = 1;
 
+  printf("MUTEX_ALLOC: mutex=%p file=%p pid=%d\n", m, f, myproc()->pid);
+
   return f;
 }
 
 void
 mutexclose(struct mutex *m)
 {
+
+  printf("MUTEX_CLOSE: mutex=%p pid=%d\n", m, myproc()->pid);
+  
   kfree((char*)m);
+  
+  printf("MUTEX_KFREE: mutex=%p\n", m);
 }

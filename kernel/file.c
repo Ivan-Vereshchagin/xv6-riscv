@@ -80,6 +80,11 @@ fileclose(struct file *f)
     panic("fileclose");
   if(--f->ref > 0){
     release(&ftable.lock);
+    if(f->type == FD_MUTEX) {
+      acquire(&f->mutex->lock);
+      --f->mutex->ref;
+      release(&f->mutex->lock);
+    }
     return;
   }
   ff = *f;
