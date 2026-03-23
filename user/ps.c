@@ -37,22 +37,42 @@ int
 main(int argc, char *argv[])
 {
 
-  int count = ps_listinfo(0, 0);
-  if(count < 0) {
-    fprintf(2, "Error: failed to get process count\n");
-    exit(1);
+  int lim = 4;
+  int max_attempts = 5;
+  int attempt = 0;
+  int ret = 0;
+  struct procinfo *plist = 0;
+
+  while(attempt < max_attempts) {
+
+    attempt++;
+
+    plist = (struct procinfo *)malloc(lim * sizeof(struct procinfo));
+    if(plist == 0) {
+      fprintf(2, "Error: malloc failed\n");
+      exit(1);
+    }
+
+    ret = ps_listinfo(plist, lim);
+
+    if(ret == -1) {
+      free(plist);
+      lim = lim * 2;
+      continue;
+    }
+
+    if(ret < 0) {
+      fprintf(2, "Error: failed to get process info\n");
+      free(plist);
+      exit(1);
+    }
+
+    break;
   }
 
-  struct procinfo *plist = (struct procinfo *)malloc(count * sizeof(struct procinfo));
-  if(plist == 0) {
-    fprintf(2, "Error: malloc failed\n");
-    exit(1);
-  }
-
-  int ret = ps_listinfo(plist, count);
-  if(ret < 0) {
-    fprintf(2, "Error: failed to get process info\n");
-    free(plist);
+  if(attempt >= max_attempts) {
+    fprintf(2, "Error: max attempts in ps exceeded\n");
+    if(plist) free(plist);
     exit(1);
   }
 

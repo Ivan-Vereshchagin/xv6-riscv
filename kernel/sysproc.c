@@ -138,11 +138,9 @@ sys_ps_listinfo(void)
   uint64 addr;
   int lim;
   int count = 0;
+  int written = 0;
   struct proc *p;
   struct procinfo info;
-  struct proc *proc_array[NPROC];
-  int nprocs = 0;
-  int i;
 
   argaddr(0, &addr);
   argint(1, &lim);
@@ -158,22 +156,21 @@ sys_ps_listinfo(void)
 
   acquire(&wait_lock);
   for(p = proc; p < &proc[NPROC]; p++) {
-    if(p->state != UNUSED) {
-      if(nprocs >= NPROC) {
-        release(&wait_lock);
-        return -1;
-      }
-      proc_array[nprocs++] = p;
-    }
+    if(p->state != UNUSED) count++;
   }
   release(&wait_lock);
 
-  if(nprocs > lim) return -1;
+  if(count > lim) return -1;
 
-  for(i = 0; i < nprocs; i++) {
-    p = proc_array[i];
-  
+  for(p = proc; p < &proc[NPROC]; p++) {
+
     acquire(&p->lock);
+    if(p->state == UNUSED) {
+      release(&p->lock);
+      continue;
+    }
+    
+
     info.pid = p->pid;
     info.ppid = 0;
     
@@ -187,11 +184,11 @@ sys_ps_listinfo(void)
     info.state = p->state;
     release(&p->lock);
     
-    uint64 elem_addr = addr + i * sizeof(struct procinfo);
+    uint64 elem_addr = addr + written * sizeof(struct procinfo);
     if(copyout(myproc()->pagetable, elem_addr, (char *)&info, sizeof(info)) < 0) return -2;
     
-    count++;
+    written++;
   }
 
-  return count;
+  return written;
 }
