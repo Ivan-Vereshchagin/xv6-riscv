@@ -146,47 +146,52 @@ sys_ps_listinfo(void)
   argint(1, &lim);
 
   if(addr == 0) {
-    acquire(&wait_lock);
     for(p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
       if(p->state != UNUSED) count++;
+      release(&p->lock);
     }
-    release(&wait_lock);
     return count;
   }
 
-  acquire(&wait_lock);
   for(p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
     if(p->state != UNUSED) count++;
+    release(&p->lock);
   }
-  release(&wait_lock);
 
   if(count > lim) return -1;
 
   for(p = proc; p < &proc[NPROC]; p++) {
 
+    if(written >= lim) return -1;
+
     acquire(&p->lock);
+
     if(p->state == UNUSED) {
       release(&p->lock);
       continue;
     }
     
-
     info.pid = p->pid;
     info.ppid = 0;
+
+    struct proc *parent = p->parent;
+    strncpy(info.name, p->name, sizeof(info.name));
+    info.state = p->state;
+
+    release(&p->lock);
     
-    if(p->parent != 0) {
+    if(parent != 0) {
       acquire(&wait_lock);
-      if(p->parent != 0) info.ppid = p->parent->pid;
+
+      if(parent == p->parent) info.ppid = parent->pid;
+
       release(&wait_lock);
     }
     
-    strncpy(info.name, p->name, sizeof(info.name));
-    info.state = p->state;
-    release(&p->lock);
-    
     uint64 elem_addr = addr + written * sizeof(struct procinfo);
     if(copyout(myproc()->pagetable, elem_addr, (char *)&info, sizeof(info)) < 0) return -2;
-    
     written++;
   }
 

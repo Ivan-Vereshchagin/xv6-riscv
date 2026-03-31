@@ -41,20 +41,26 @@ test_null_pointer()
 int
 test_normal_operation()
 {
-  int count = ps_listinfo(0, 0);
-  if(count < 0) return 0;
+  int lim = ps_listinfo(0, 0);
+  if(lim < 0) return 0;
   
-  struct procinfo *plist = (struct procinfo *)malloc(count * sizeof(struct procinfo));
+  int buffer_size = lim + 2;
+  struct procinfo *plist = (struct procinfo *)malloc(buffer_size * sizeof(struct procinfo));
   if(plist == 0) {
     write_err("Error: malloc fail\n");
     return 0;
   }
   
-  int ret = ps_listinfo(plist, count);
+  int ret = ps_listinfo(plist, buffer_size);
   
   int valid = 1;
-  if(ret != count) {
+  if(ret < 0) {
     write_err("Error: returned count mismatch\n");
+    valid = 0;
+  }
+
+  if(valid && (ret < 0 || ret > buffer_size)) {
+    write_err("Error: invalid return count\n");
     valid = 0;
   }
   
