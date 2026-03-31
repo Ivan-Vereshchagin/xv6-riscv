@@ -7,6 +7,9 @@
 #include "proc.h"
 #include "vm.h"
 
+extern struct proc proc[NPROC];
+extern struct spinlock wait_lock;
+
 uint64
 sys_exit(void)
 {
@@ -106,4 +109,91 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+uint64
+sys_getprocinfo(void)
+{
+  struct procinfo info;
+  struct proc *p = myproc();
+  uint64 addr;
+
+  argaddr(0, &addr);
+
+  if(addr == 0) return -1;
+
+  info.pid = p->pid;
+  info.ppid = (p->parent) ? p->parent->pid : 0;
+  strncpy(info.name, p->name, sizeof(info.name));
+  info.state = p->state;
+
+  if(copyout(p->pagetable, addr, (char *)&info, sizeof(info)) < 0) return -1;
+
+  return 0;
+}
+
+uint64
+sys_ps_listinfo(void)
+{
+  uint64 addr;
+  int lim;
+  int count = 0;
+  int written = 0;
+  struct proc *p;
+  struct procinfo info;
+
+  argaddr(0, &addr);
+  argint(1, &lim);
+
+  if(addr == 0) {
+    for(p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
+      if(p->state != UNUSED) count++;
+      release(&p->lock);
+    }
+    return count;
+  }
+
+  for(p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if(p->state != UNUSED) count++;
+    release(&p->lock);
+  }
+
+  if(count > lim) return -1;
+
+  for(p = proc; p < &proc[NPROC]; p++) {
+
+    if(written >= lim) return -1;
+
+    acquire(&p->lock);
+
+    if(p->state == UNUSED) {
+      release(&p->lock);
+      continue;
+    }
+    
+    info.pid = p->pid;
+    info.ppid = 0;
+
+    struct proc *parent = p->parent;
+    strncpy(info.name, p->name, sizeof(info.name));
+    info.state = p->state;
+
+    release(&p->lock);
+    
+    if(parent != 0) {
+      acquire(&wait_lock);
+
+      if(parent == p->parent) info.ppid = parent->pid;
+
+      release(&wait_lock);
+    }
+    
+    uint64 elem_addr = addr + written * sizeof(struct procinfo);
+    if(copyout(myproc()->pagetable, elem_addr, (char *)&info, sizeof(info)) < 0) return -2;
+    written++;
+  }
+
+  return written;
 }
