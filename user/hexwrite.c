@@ -49,11 +49,24 @@ main(int argc, char *argv[])
     exit(1);
   }
   
-  int written = write(fd, buf, bytes_count);
-  if (written != bytes_count) {
-    fprintf(2, "Write error.\n");
-    close(fd);
-    exit(1);
+  int written = 0;
+
+  while (written < bytes_count) {
+    int n = write(fd, buf + written, bytes_count - written);
+
+    if (n < 0) {
+      fprintf(2, "Write error.\n");
+      close(fd);
+      exit(1);
+    }
+
+    if (n == 0) {
+      fprintf(2, "Write error.\n");
+      close(fd);
+      exit(1);
+    }
+    
+    written += n;
   }
   
   close(fd);

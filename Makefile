@@ -149,6 +149,7 @@ UPROGS=\
 	$U/_mknod\
 	$U/_hexdump\
 	$U/_hexwrite\
+	$U/_readcounter\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

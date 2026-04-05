@@ -23,11 +23,13 @@ main(void)
   dup(0);  // stdout
   dup(0);  // stderr
 
-  mkdir("/dev");
-  mknod("/dev/null", 5, 0);
-  mknod("/dev/zero", 5, 1);
-  mknod("/dev/urandom", 5, 2);
-  mknod("/dev/nullstat", 5, 3);
+  struct stat st;
+  
+  if (stat("/dev", &st) < 0) mkdir("/dev");
+  if (stat("/dev/null", &st) < 0) mknod("/dev/null", 5, 0);
+  if (stat("/dev/zero", &st) < 0) mknod("/dev/zero", 5, 1);
+  if (stat("/dev/urandom", &st) < 0) mknod("/dev/urandom", 5, 2);
+  if (stat("/dev/nullstat", &st) < 0) mknod("/dev/nullstat", 5, 3);
 
   for(;;){
     printf("init: starting sh\n");

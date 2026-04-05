@@ -22,15 +22,26 @@ main(int argc, char *argv[])
   }
 
   char buf;
-  for (int i = 0; i < count; i++) {
+  int total = 0;
+  
+  while (total < count) {
     int n = read(fd, &buf, 1);
-    if (n != 1) break;
-   
+
+    if (n < 0) {
+      fprintf(2, "Error: hexdump read error.\n");
+      close(fd);
+      exit(1);
+    }
+
+    if (n == 0) break;
+    
     unsigned char byte = buf & 0xFF;
     char high = hex_chars[(byte >> 4) & 0x0F];
     char low = hex_chars[byte & 0x0F];
-    
+
     printf("%c%c ", high, low);
+
+    total++;
   }
   printf("\n");
   

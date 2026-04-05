@@ -12,7 +12,6 @@
 struct {
   struct spinlock lock;
   uint64 seed;
-  int initialized;
 } urandom_state;
 
 struct {
@@ -25,7 +24,6 @@ pseudostateinit(void)
 {
   initlock(&urandom_state.lock, "urandom");
   urandom_state.seed = 1;
-  urandom_state.initialized = 1;
   
   initlock(&nullstat_state.lock, "nullstat");
   nullstat_state.written_bytes = 0;
@@ -49,10 +47,17 @@ pseudoread(int major, uint64 addr, int n, int minor)
   case MINOR_NULL: return 0;
 
   case MINOR_ZERO:
-    for (int i = 0; i < n; i++) {
-      byte = 0;
-      if (either_copyout(1, addr + i, &byte, 1) == -1) return i;
+    static char zero_buf[512];
+    uint64 total = 0;
+
+    while (total < n) {
+      int to_copy = (n - total > sizeof(zero_buf)) ? sizeof(zero_buf) : (n - total);
+
+      if (either_copyout(1, addr + total, zero_buf, to_copy) == -1) return (total == 0) ? -1 : total;
+      
+      total += to_copy;
     }
+    
     return n;
 
   case MINOR_URANDOM:
