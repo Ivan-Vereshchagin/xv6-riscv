@@ -6,8 +6,6 @@
 #include "sleeplock.h"
 
 struct mutex {
-  int ref;
-  struct spinlock lock;
   struct sleeplock lk;
 };
 

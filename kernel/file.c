@@ -14,12 +14,6 @@
 #include "proc.h"
 #include "mutex.h"
 
-static int
-holding_mutex(struct mutex *m, int pid)
-{
-  return m->lk.locked && m->lk.pid == pid;
-}
-
 struct devsw devsw[NDEV];
 struct {
   struct spinlock lock;
@@ -58,13 +52,6 @@ filedup(struct file *f)
   if(f->ref < 1)
     panic("filedup");
   f->ref++;
-
-  if (f->type == FD_MUTEX) {
-    acquire(&f->mutex->lock);
-    f->mutex->ref++;
-    release(&f->mutex->lock);
-  }
-
   release(&ftable.lock);
   return f;
 }
@@ -80,11 +67,6 @@ fileclose(struct file *f)
     panic("fileclose");
   if(--f->ref > 0){
     release(&ftable.lock);
-    if(f->type == FD_MUTEX) {
-      acquire(&f->mutex->lock);
-      --f->mutex->ref;
-      release(&f->mutex->lock);
-    }
     return;
   }
   ff = *f;
@@ -96,13 +78,9 @@ fileclose(struct file *f)
     pipeclose(ff.pipe, ff.writable);
   } else if (ff.type == FD_MUTEX) {
 
-    if (holding_mutex(ff.mutex, myproc()->pid)) releasesleep(&ff.mutex->lk);
+    if (holdingsleep(&ff.mutex->lk)) releasesleep(&ff.mutex->lk);
 
-    acquire(&ff.mutex->lock);
-    int mref = --ff.mutex->ref;
-    release(&ff.mutex->lock);
-
-    if (mref == 0) mutexclose(ff.mutex);
+    mutexclose(ff.mutex);
 
   } else if(ff.type == FD_INODE || ff.type == FD_DEVICE){
     begin_op();

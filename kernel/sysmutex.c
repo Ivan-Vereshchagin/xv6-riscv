@@ -53,7 +53,7 @@ sys_mutex_unlock(void)
   f = myproc()->ofile[fd];
   if (f == 0 || f->type != FD_MUTEX) return -1;
 
-  if (f->mutex->lk.pid != myproc()->pid) return -1;
+  if (!holdingsleep(&f->mutex->lk)) return -1;
 
   releasesleep(&f->mutex->lk);
 

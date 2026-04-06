@@ -21,8 +21,6 @@ mutexalloc(void)
     return 0;
   }
 
-  m->ref = 1;
-  initlock(&m->lock, "mutex");
   initsleeplock(&m->lk, "mutex");
 
   f->type = FD_MUTEX;
