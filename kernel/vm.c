@@ -484,3 +484,86 @@ ismapped(pagetable_t pagetable, uint64 va)
   }
   return 0;
 }
+
+void print_ind(int level) {
+  if (level == 1) printf("......... ");
+  else if (level == 0) printf("...................");
+}
+
+void print_flags(uint64 pte) {
+  printf("%c%c%c%c%c%c%c",
+    (pte & PTE_R) ? 'R' : '_',
+    (pte & PTE_W) ? 'W' : '_',
+    (pte & PTE_X) ? 'X' : '_',
+    (pte & PTE_U) ? 'U' : '_',
+    (pte & PTE_G) ? 'G' : '_',
+    (pte & PTE_A) ? 'A' : '_',
+    (pte & PTE_D) ? 'D' : '_'
+  );
+}
+
+void printpt(pagetable_t pagetable, int level) {
+  for (int i = 0; i < 512; i++) {
+    uint64 pte = pagetable[i];
+
+    if (pte & PTE_V) {
+      uint64 pa = PTE2PA(pte);
+      
+      print_ind(level);
+      printf("0x%x -> 0x%lx ", i, pa);
+      print_flags(pte);
+      printf("\n");
+
+      if ((pte & (PTE_R | PTE_W | PTE_X)) == 0) {
+        if (level > 0) printpt((pagetable_t)pa, level - 1);
+      }
+    }
+  }
+}
+
+int
+pagetableclear(pagetable_t pagetable, uint64 addr, uint64 len, uint64 flags)
+{
+  uint64 end = addr + len;
+
+  if (flags & ~(PTE_A | PTE_D)) return -1;
+  if (len == 0 || end < addr) return -1;
+  
+  uint64 a = addr;
+  while (a < end) {
+    pte_t *pte = walk(pagetable, a, 0);
+      
+    if (pte == 0) return -1;
+    
+    if (*pte & PTE_V) *pte &= ~flags;
+    else return -1;
+    a = PGROUNDUP(a + 1);
+  }
+  
+  return 0;
+}
+
+int
+pagetablecheck(pagetable_t pagetable, uint64 addr, uint64 len, uint64 flags)
+{
+  uint64 end = addr + len;
+
+  if (flags == 0) return -1;
+  if (len == 0 || end < addr) return -1;
+
+  uint64 a = addr;
+  while (a < end) {
+    pte_t *pte = walk(pagetable, a, 0);
+
+    if (pte == 0) return -1;
+
+    if (*pte & PTE_V) {
+      if (*pte & flags) return 1;
+    }
+    else return -1;
+
+    a = PGROUNDUP(a + 1);
+  }
+
+  return 0;
+}
