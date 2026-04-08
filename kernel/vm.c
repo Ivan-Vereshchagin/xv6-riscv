@@ -526,7 +526,7 @@ pagetableclear(pagetable_t pagetable, uint64 addr, uint64 len, uint64 flags)
 {
   uint64 end = addr + len;
 
-  if (flags & ~(PTE_A | PTE_D)) return -1;
+  if (flags == 0 || flags & ~(PTE_A | PTE_D)) return -1;
   if (len == 0 || end < addr) return -1;
   
   uint64 a = addr;
