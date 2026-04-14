@@ -8,6 +8,11 @@ int is_leap(int year) {
 
 int days_in_month[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
+void print_two_digits(int n) {
+    if (n < 10) printf("0");
+    printf("%d", n);
+}
+
 void print_date(uint64 ns) {
     uint64 seconds = ns / 1000000000;
     uint64 nsec_part = ns % 1000000000;
@@ -39,8 +44,28 @@ void print_date(uint64 ns) {
     int minute = seconds / 60;
     int second = seconds % 60;
 
-    printf("%d-%d-%d %d:%d:%d.%ld\n", year, month + 1, day, hour, minute, second, (long)nsec_part);
+    printf("%d", year);
+    printf("-");
+
+    print_two_digits(month + 1);
+    printf("-");
+
+    print_two_digits(day);
+    printf(" ");
+
+    print_two_digits(hour);
+    printf(":");
+
+    print_two_digits(minute);
+    printf(":");
+
+    print_two_digits(second);
+    printf(".");
+
+    printf("%d", (int)nsec_part);
+    printf("\n");
 }
+
 
 int main(int argc, char *argv[]) {
     uint64 ns;
