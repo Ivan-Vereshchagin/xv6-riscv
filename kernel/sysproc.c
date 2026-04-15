@@ -136,7 +136,9 @@ sys_pagetableclear(void)
   
   uint64 a = addr;
   while (a < end) {
-    if (walkaddr(p->pagetable, a) == 0) return -1;
+    pte_t *pte = walk(p->pagetable, a, 0);
+    if (pte == 0 || !(*pte & PTE_V) || !(*pte & PTE_U)) return -1;
+
     a = PGROUNDUP(a + 1);
   }
 
@@ -162,7 +164,9 @@ sys_pagetablecheck(void)
 
   uint64 a = addr;
   while (a < end) {
-    if (walkaddr(p->pagetable, a) == 0) return -1;
+    pte_t *pte = walk(p->pagetable, a, 0);
+    if (pte == 0 || !(*pte & PTE_V) || !(*pte & PTE_U)) return -1;
+    
     a = PGROUNDUP(a + 1);
   }
 
