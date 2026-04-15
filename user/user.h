@@ -47,3 +47,7 @@ void printf(const char*, ...) __attribute__ ((format (printf, 1, 2)));
 // umalloc.c
 void* malloc(uint);
 void free(void*);
+
+int pagetableprint(void);
+int pagetableclear(void *addr, uint64 len, uint64 flags);
+int pagetablecheck(void *addr, uint64 len, uint64 flags);

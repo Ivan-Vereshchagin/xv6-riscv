@@ -107,3 +107,72 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64
+sys_pagetableprint(void)
+{
+  struct proc *p = myproc();
+
+  acquire(&p->lock);
+  printf("PAGETABLE 0x%lx\n", (uint64)p->pagetable);
+  printpt(p->pagetable, 2);
+  release(&p->lock);
+  
+  return 0;
+}
+
+uint64
+sys_pagetableclear(void)
+{
+  uint64 addr, len, flags;
+  struct proc *p = myproc();
+
+  argaddr(0, &addr);
+  argaddr(1, &len);
+  argaddr(2, &flags);
+
+  uint64 end = addr + len;
+  if (len == 0 || end < addr) return -1;
+  
+  uint64 a = addr;
+  while (a < end) {
+    pte_t *pte = walk(p->pagetable, a, 0);
+    if (pte == 0 || !(*pte & PTE_V) || !(*pte & PTE_U)) return -1;
+
+    a = PGROUNDUP(a + 1);
+  }
+
+  acquire(&p->lock);
+  int ret = pagetableclear(p->pagetable, addr, len, flags);
+  release(&p->lock);
+  
+  return ret;
+}
+
+uint64
+sys_pagetablecheck(void)
+{
+  uint64 addr, len, flags;
+  struct proc *p = myproc();
+
+  argaddr(0, &addr);
+  argaddr(1, &len);
+  argaddr(2, &flags);
+
+  uint64 end = addr + len;
+  if (len == 0 || end < addr) return -1;
+
+  uint64 a = addr;
+  while (a < end) {
+    pte_t *pte = walk(p->pagetable, a, 0);
+    if (pte == 0 || !(*pte & PTE_V) || !(*pte & PTE_U)) return -1;
+    
+    a = PGROUNDUP(a + 1);
+  }
+
+  acquire(&p->lock);
+  int ret = pagetablecheck(p->pagetable, addr, len, flags);
+  release(&p->lock);
+
+  return ret;
+}
