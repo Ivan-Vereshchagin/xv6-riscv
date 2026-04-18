@@ -6,6 +6,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "vm.h"
+#include "rtc.h"
 
 uint64
 sys_exit(void)
@@ -106,4 +107,18 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+uint64
+sys_gettime(void)
+{
+  uint64 addr;
+  argaddr(0, &addr);
+  if (addr == 0) return -1;
+  
+  uint64 ns = rtc_read();
+
+  if (copyout(myproc()->pagetable, addr, (char *)&ns, sizeof(ns)) < 0) return -1;
+
+  return 0;
 }
