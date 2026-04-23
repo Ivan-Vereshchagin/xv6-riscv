@@ -8,6 +8,7 @@
 #include "kernel/file.h"
 #include "user/user.h"
 #include "kernel/fcntl.h"
+#include "kernel/pseudo.h"
 
 char *argv[] = { "sh", 0 };
 
@@ -26,10 +27,10 @@ main(void)
   struct stat st;
   
   if (stat("/dev", &st) < 0) mkdir("/dev");
-  if (stat("/dev/null", &st) < 0) mknod("/dev/null", 5, 0);
-  if (stat("/dev/zero", &st) < 0) mknod("/dev/zero", 5, 1);
-  if (stat("/dev/urandom", &st) < 0) mknod("/dev/urandom", 5, 2);
-  if (stat("/dev/nullstat", &st) < 0) mknod("/dev/nullstat", 5, 3);
+  if (stat("/dev/null", &st) < 0) mknod("/dev/null", PSEUDO_MAJOR, MINOR_NULL);
+  if (stat("/dev/zero", &st) < 0) mknod("/dev/zero", PSEUDO_MAJOR, MINOR_ZERO);
+  if (stat("/dev/urandom", &st) < 0) mknod("/dev/urandom", PSEUDO_MAJOR, MINOR_URANDOM);
+  if (stat("/dev/nullstat", &st) < 0) mknod("/dev/nullstat", PSEUDO_MAJOR, MINOR_NULLSTAT);
 
   for(;;){
     printf("init: starting sh\n");

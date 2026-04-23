@@ -21,30 +21,34 @@ main(int argc, char *argv[])
     exit(1);
   }
 
-  char buf;
-  int total = 0;
-  
-  while (total < count) {
-    int n = read(fd, &buf, 1);
+  char *buf = malloc(count);
+  if (!buf) {
+    fprintf(2, "Error: hexdump out of memory.\n");
+    close(fd);
+    exit(1);
+  }
 
+  int total = 0;
+
+  while (total < count) {
+    int n = read(fd, buf + total, count - total);
     if (n < 0) {
       fprintf(2, "Error: hexdump read error.\n");
+      free(buf);
       close(fd);
       exit(1);
     }
-
     if (n == 0) break;
-    
-    unsigned char byte = buf & 0xFF;
-    char high = hex_chars[(byte >> 4) & 0x0F];
-    char low = hex_chars[byte & 0x0F];
+    total += n;
+  }
 
-    printf("%c%c ", high, low);
-
-    total++;
+  for (int i = 0; i < total; i++) {
+    unsigned char byte = (unsigned char)buf[i];
+    printf("%c%c ", hex_chars[(byte >> 4) & 0x0F], hex_chars[byte & 0x0F]);
   }
   printf("\n");
-  
+
+  free(buf);
   close(fd);
   exit(0);
 }
