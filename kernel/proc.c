@@ -302,6 +302,8 @@ kfork(void)
   np->state = RUNNABLE;
   release(&np->lock);
 
+  if (log_is_enabled(LOG_PROC)) pr_msg("proc: created pid=%d parent=%d", pid, p->pid);
+
   return pid;
 }
 
@@ -346,6 +348,10 @@ kexit(int status)
   p->cwd = 0;
 
   acquire(&wait_lock);
+
+  if (log_is_enabled(LOG_PROC)) {
+    pr_msg("proc: exiting pid=%d parent=%d", p->pid, p->parent ? p->parent->pid : -1);
+  }
 
   // Give any children to init.
   reparent(p);

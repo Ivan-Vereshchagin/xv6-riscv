@@ -193,6 +193,13 @@ devintr()
     // irq indicates which device interrupted.
     int irq = plic_claim();
 
+    if (log_is_enabled(LOG_IRQ)) {
+      const char *dev = "unknown";
+      if (irq == UART0_IRQ) dev = "uart";
+      else if (irq == VIRTIO0_IRQ) dev = "virtio";
+      pr_msg("irq: device=%s irq_num=%d", dev, irq);
+    }
+
     if(irq == UART0_IRQ){
       uartintr();
     } else if(irq == VIRTIO0_IRQ){
