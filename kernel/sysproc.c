@@ -7,6 +7,8 @@
 #include "proc.h"
 #include "vm.h"
 
+#define DIAG_BUF_SIZE (DIAG_PAGES * PGSIZE)
+
 uint64
 sys_exit(void)
 {
@@ -106,4 +108,82 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+uint64
+sys_dmesg(void)
+{
+  uint64 ubuf;
+  int len;
+  argaddr(0, &ubuf);
+  argint(1, &len);
+  if (len <= 0) return -1;
+
+  acquire(&diag_lock);
+
+  if (diag_head == diag_tail) {
+    release(&diag_lock);
+    if (copyout(myproc()->pagetable, ubuf, "\0", 1) < 0) return -1;
+    return 0;
+  }
+
+  int search = diag_head;
+  while (search != diag_tail && diag_buf[search] != '\n')
+    search = (search + 1) % DIAG_BUF_SIZE;
+
+  int start = diag_head;
+  if (search != diag_tail) {
+    start = (search + 1) % DIAG_BUF_SIZE;
+    if (start == diag_tail) start = diag_head;
+  }
+
+  int avail = (diag_tail - start + DIAG_BUF_SIZE) % DIAG_BUF_SIZE;
+  int to_copy = (avail < len - 1) ? avail : len - 1;
+  int copied = 0;
+
+  if (to_copy > 0) {
+    if (start + to_copy <= DIAG_BUF_SIZE) {
+      if (copyout(myproc()->pagetable, ubuf, &diag_buf[start], to_copy) < 0) {
+        release(&diag_lock);
+        return -1;
+      }
+      copied = to_copy;
+    } else {
+      int first = DIAG_BUF_SIZE - start;
+      int second = to_copy - first;
+      if (copyout(myproc()->pagetable, ubuf, &diag_buf[start], first) < 0 ||
+          copyout(myproc()->pagetable, ubuf + first, &diag_buf[0], second) < 0) {
+        release(&diag_lock);
+        return -1;
+      }
+      copied = to_copy;
+    }
+  }
+
+  if (copyout(myproc()->pagetable, ubuf + copied, "\0", 1) < 0) {
+    release(&diag_lock);
+    return -1;
+  }
+
+  release(&diag_lock);
+  return copied;
+}
+
+uint64
+sys_logctl(void)
+{
+  int mask, duration;
+  argint(0, &mask);
+  argint(1, &duration);
+
+  acquire(&logctl_lock);
+  if (mask != -1) log_mask = mask;
+  if (duration != -1) {
+    log_duration = duration;
+    acquire(&tickslock);
+    log_start_tick = ticks;
+    release(&tickslock);
+  }
+  release(&logctl_lock);
+  return 0;
 }

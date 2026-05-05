@@ -183,3 +183,25 @@ void            virtio_disk_intr(void);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+
+void diag_init(void);
+void diag_putc(char);
+extern char diag_buf[];
+extern uint diag_head;
+extern uint diag_tail;
+extern struct spinlock diag_lock;
+void pr_msg(const char*, ...);
+
+int log_is_enabled(int);
+const char* syscall_name(int);
+void logctl_init(void);
+
+extern int log_mask;
+extern int log_duration;
+extern int log_start_tick;
+extern struct spinlock logctl_lock;
+
+#define LOG_SYSCALL (1<<0)
+#define LOG_IRQ (1<<1)
+#define LOG_PROC (1<<2)
+#define LOG_EXEC (1<<3)
